@@ -1,5 +1,6 @@
-const { Stack, Duration } = require('aws-cdk-lib');
+const { Aws, Stack, Duration } = require('aws-cdk-lib');
 // const sqs = require('aws-cdk-lib/aws-sqs');
+const iam = require('aws-cdk-lib/aws-iam');
 const sqs = require('aws-cdk-lib/aws-sqs');
 const lambda = require('aws-cdk-lib/aws-lambda');
 const apigateway = require('aws-cdk-lib/aws-apigateway');
@@ -15,22 +16,19 @@ class LmsSqsStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
-    // The code that defines your stack goes here
 
-    // example resource
-    // const queue = new sqs.Queue(this, 'LmsSqsQueue', {
-    //   visibilityTimeout: Duration.seconds(300)
-    // });
     // Create SQS Queue
     const queue = new sqs.Queue(this, 'LmsSqsQueue.fifo', {
-      visibilityTimeout: Duration.seconds(300)
+      visibilityTimeout: Duration.seconds(300),
+      fifo: true,
+      contentBasedDeduplication: true
     });
 
 
     // Create Lambda Function
     const lambdaFunction = new lambda.Function(this, 'ProcessMessages', {
-      runtime: lambda.Runtime.NODEJS_14_X,
-      code: lambda.Code.fromAsset('resouces'),
+      runtime: lambda.Runtime.NODEJS_LATEST,
+      code: lambda.Code.fromAsset('resources'),
       handler: 'lambda.handler'
     });
 
@@ -52,7 +50,7 @@ class LmsSqsStack extends Stack {
     // Integrate the API Gateway with the SQS queue
     const queueIntegration = new apigateway.AwsIntegration({
       service: 'sqs',
-      path: `${cdk.Aws.ACCOUNT_ID}/${queue.queueName}`,
+      path: `${Aws.ACCOUNT_ID}/${queue.queueName}`,
       options: {
         credentialsRole: new iam.Role(this, 'ApiGatewaySqsRole', {
           assumedBy: new iam.ServicePrincipal('apigateway.amazonaws.com'),
@@ -81,7 +79,7 @@ class LmsSqsStack extends Stack {
     resource.addMethod('POST', queueIntegration, {
       methodResponses: [{ statusCode: '200' }]
     });
-    
+
 
   }
 }
