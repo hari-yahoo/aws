@@ -1,6 +1,19 @@
 exports.handler = async (event, context) => {
-    for (const message of event.Records) {
+
+    event.Records.array.forEach(async (message) => {
         await processMessageAsync(message);
+
+
+        var sqs = new AWS.SQS();
+
+        sqs.deleteMessage({
+            QueueUrl: "",
+            ReceiptHandle: receiptHandle
+        });
+    });
+    for (const message of event.Records) {
+        
+
     }
     console.info("done");
 };

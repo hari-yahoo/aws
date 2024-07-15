@@ -1,5 +1,4 @@
 const { Aws, Stack, Duration } = require('aws-cdk-lib');
-// const sqs = require('aws-cdk-lib/aws-sqs');
 const iam = require('aws-cdk-lib/aws-iam');
 const sqs = require('aws-cdk-lib/aws-sqs');
 const lambda = require('aws-cdk-lib/aws-lambda');
@@ -16,9 +15,8 @@ class LmsSqsStack extends Stack {
   constructor(scope, id, props) {
     super(scope, id, props);
 
-
     // Create SQS Queue
-    const queue = new sqs.Queue(this, 'LmsSqsQueue.fifo', {
+    const queue = new sqs.Queue(this, 'LmsUpdateSqsQueue.fifo', {
       visibilityTimeout: Duration.seconds(300),
       fifo: true,
       contentBasedDeduplication: true
@@ -29,7 +27,10 @@ class LmsSqsStack extends Stack {
     const lambdaFunction = new lambda.Function(this, 'ProcessMessages', {
       runtime: lambda.Runtime.NODEJS_LATEST,
       code: lambda.Code.fromAsset('resources'),
-      handler: 'lambda.handler'
+      handler: 'lambda2.handler',
+      environment: {
+        QUEUE_URL: queue.queueUrl
+      }
     });
 
     // Grant the Lambda function permissions to interact with the SQS queue
@@ -75,7 +76,7 @@ class LmsSqsStack extends Stack {
 
 
     // Define a new API resource and method
-    const resource = api.root.addResource('myresource');
+    const resource = api.root.addResource('updatehook');
     resource.addMethod('POST', queueIntegration, {
       methodResponses: [{ statusCode: '200' }]
     });
